@@ -183,7 +183,7 @@
       that._menu.style.display = 'none';
     });
     // toggle toolbar on key select
-    clickHandler = function(e) {
+    menu.addEventListener('click', function(e) {
       var action = e.target.getAttribute('data-action');
 
       if(!action) return;
@@ -216,8 +216,7 @@
       }
 
       apply();
-    }
-    menu.addEventListener('click', clickHandler);
+    });
 
     return this;
   };
@@ -351,13 +350,6 @@
     });
   };
 
-  function removeEventHandler(elem,eventType,handler) {
-       if (elem.removeEventListener) 
-               elem.removeEventListener (eventType,handler,false);
-        if (elem.detachEvent)
-                elem.detachEvent ('on'+eventType,handler); 
-  }
-
   Pen.prototype.destroy = function(isAJoke) {
     var destroy = isAJoke ? false : true
       , attr = isAJoke ? 'setAttribute' : 'removeAttribute';
@@ -368,7 +360,6 @@
     }
     this._isDestroyed = destroy;
     this.config.editor[attr]('contenteditable', '');
-    removeEventHandler(this.config.editor, 'click', clickHandler);
 
     return this;
   };
