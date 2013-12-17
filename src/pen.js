@@ -65,42 +65,6 @@
     return defaults;
   };
 
-  utils.clickHandler = function(e) {
-    var action = e.target.getAttribute('data-action');
-
-    if(!action) return;
-
-    var apply = function(value) {
-      that._sel.removeAllRanges();
-      that._sel.addRange(that._range);
-      that._actions(action, value);
-      that._range = that._sel.getRangeAt(0);
-      that.highlight().nostyle().menu();
-    };
-
-    // create link
-    if(action === 'createlink') {
-      var input = menu.getElementsByTagName('input')[0], createlink;
-
-      input.style.display = 'block';
-      input.focus();
-
-      createlink = function(input) {
-        input.style.display = 'none';
-        if(input.value) return apply(input.value.replace(/(^\s+)|(\s+$)/g, '').replace(/^(?!http:\/\/|https:\/\/)(.*)$/, 'http://$1'));
-        action = 'unlink';
-        apply();
-      };
-
-      return input.onkeypress = function(e) {
-        if(e.which === 13) return createlink(e.target);
-      };
-    }
-
-    apply();
-  }
-
-
   Pen = function(config) {
 
     if(!config) return utils.log('can\'t find config', true);
@@ -122,6 +86,42 @@
 
     // assign config
     this.config = defaults;
+
+    this.clickHandler = function(e) {
+      var action = e.target.getAttribute('data-action');
+  
+      if(!action) return;
+  
+      var apply = function(value) {
+        that._sel.removeAllRanges();
+        that._sel.addRange(that._range);
+        that._actions(action, value);
+        that._range = that._sel.getRangeAt(0);
+        that.highlight().nostyle().menu();
+      };
+  
+      // create link
+      if(action === 'createlink') {
+        var input = menu.getElementsByTagName('input')[0], createlink;
+  
+        input.style.display = 'block';
+        input.focus();
+  
+        createlink = function(input) {
+          input.style.display = 'none';
+          if(input.value) return apply(input.value.replace(/(^\s+)|(\s+$)/g, '').replace(/^(?!http:\/\/|https:\/\/)(.*)$/, 'http://$1'));
+          action = 'unlink';
+          apply();
+        };
+  
+        return input.onkeypress = function(e) {
+          if(e.which === 13) return createlink(e.target);
+        };
+      }
+  
+      apply();
+    }
+
 
     // save the selection obj
     this._sel = doc.getSelection();
@@ -219,7 +219,7 @@
       that._menu.style.display = 'none';
     });
     // toggle toolbar on key select
-    menu.addEventListener('click', utils.clickHandler);
+    menu.addEventListener('click', this.clickHandler);
 
     return this;
   };
@@ -370,7 +370,7 @@
     }
     this._isDestroyed = destroy;
     this.config.editor[attr]('contenteditable', '');
-    removeEventHandler(this.config.editor, 'click', utils.clickHandler);
+    removeEventHandler(this.config.editor, 'click', this.clickHandler);
 
     return this;
   };
