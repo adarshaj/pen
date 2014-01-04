@@ -319,7 +319,15 @@
     // display block to caculate it's width & height
     menu.style.display = 'block';
     menu.style.top = top - menu.clientHeight + 'px';
-    menu.style.left = left - (menu.clientWidth/2) + 'px';
+    var marginLeft = left - (menu.clientWidth/2);
+    menu.style.left = marginLeft + 'px';
+    if(marginLeft < 0){
+      menu.style.left = '1em';      //toolbar is ou of the window from left
+    }
+    else if(marginLeft + menu.clientWidth > window.innerWidth){
+      menu.style.left = window.innerWidth - menu.clientWidth;   //toolbar is out of the window from right
+    }
+
 
     return this;
   };
