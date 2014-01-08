@@ -1,6 +1,6 @@
 /*! Licensed under MIT, https://github.com/sofish/pen */
 /* jshint -W030, -W093, -W015 */
-(function(doc) {
+jQuery(document).ready(function($) {
 
   var Pen, FakePen, utils = {};
 
@@ -88,7 +88,7 @@
     this.config = defaults;
 
     // save the selection obj
-    this._sel = doc.getSelection();
+    this._sel = document.getSelection();
 
     this._eventHandlers = [];
 
@@ -129,9 +129,16 @@
   Pen.prototype.toolbar = function() {
 
     var that = this, icons = '';
+    var menu = document.createElement('div');
+    menu.setAttribute('class', this.config.className + '-menu pen-menu');
 
     for(var i = 0, list = this.config.list; i < list.length; i++) {
+      
       var name = list[i], klass = 'pen-icon icon-' + name;
+/*      var icon = document.createElement('i');
+      icon.setAttribute('class', klass);
+      icon.innerHTML = (name.match(/^h[1-6]|p$/i) ? name.toUpperCase() : '');
+*/
       icons += '<i class="' + klass + '" data-action="' + name + '">' + (name.match(/^h[1-6]|p$/i) ? name.toUpperCase() : '') + '</i>';
       if((name === 'createlink')) icons += '<input class="pen-input" placeholder="http://" />';
     }
@@ -142,12 +149,10 @@
       }
     }
 
-    var menu = doc.createElement('div');
-    menu.setAttribute('class', this.config.className + '-menu pen-menu');
     menu.innerHTML = icons;
     menu.style.display = 'none';
 
-    doc.body.appendChild((this._menu = menu));
+    document.body.appendChild((this._menu = menu));
 
     var setpos = function() {
       if(menu.style.display === 'block') that.menu();
@@ -189,11 +194,16 @@
       that._menu.style.display = 'none';
     }
 
-    that._eventHandlers.push({elem: doc, event: 'mouseup', handler:hideMenu});
-    doc.addEventListener('mouseup', hideMenu);
+    that._eventHandlers.push({elem: document, event: 'mouseup', handler:hideMenu});
+    document.addEventListener('mouseup', hideMenu);
     var clickHandler = function(e) {
-      var action = e.target.getAttribute('data-action');
-
+      console.log(e);
+      try {
+        var action = e.target.getAttribute('data-action');
+      }
+      catch(e){
+        action = e.target.parentNode.getAttribute('data-action');
+      }
       if(!action) return;
 
       var apply = function(value) {
@@ -264,8 +274,7 @@
         case 'b': return highlight('bold');
         case 'ul': return highlight('insertunorderedlist');
         case 'ol': return highlight('insertorderedlist');
-        case 'sup': return highlight('superscript');
-		    case 'sub': return highlight('subscript');
+        case 'ol': return highlight('insertorderedlist');
         case 'li': return highlight('indent');
         default : highlight(tag);
       }
@@ -281,7 +290,7 @@
     reg = {
       event: /^(?:event-)/,
       block: /^(?:p|h[1-6]|blockquote|pre)$/,
-      inline: /^(?:bold|italic|underline|insertorderedlist|insertunorderedlist|indent|outdent|superscript|subscript)$/,
+      inline: /^(?:bold|italic|underline|insertorderedlist|insertunorderedlist|indent|outdent)$/,
       source: /^(?:insertimage|createlink|unlink)$/,
       insert: /^(?:inserthorizontalrule|insert)$/
     };
@@ -404,6 +413,7 @@
   };
 
   // make it accessible
-  this.Pen = doc.getSelection ? Pen : FakePen;
+  window.Pen = document.getSelection ? Pen : FakePen;
 
-}(document));
+});
+
