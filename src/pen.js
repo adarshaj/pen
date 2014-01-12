@@ -3,7 +3,33 @@
 jQuery(document).ready(function($) {
 
   var Pen, FakePen, utils = {};
-
+  var iconUnicode = {'location':'&#x\uf041',
+                'fit':'\uf066',
+                'bold':'\uf032',
+                'italic':'\uf033',
+                'justifyleft':'\uf036',
+                'justifycenter':'\uf037',
+                'justifyright':'\uf038',
+                'justifyfull':'\uf039',
+                'outdent':'\uf03b',
+                'indent':'\uf03c',
+                'mode':'\uf042',
+                'fullscreen':'\uf0b2',
+                'insertunorderedlist':'\uf0ca',
+                'insertorderedlist':'\uf0cb',
+                'strikethrough':'\uf0cc',
+                'underline':'\uf0cd',
+                'blockquote':'\uf10d',
+                'undo':'\uf0e2',
+                'pre':'\uf121',
+                'unlink':'\uf127',
+                'superscript':'\uf12b',
+                'subscript':'\uf12c',
+                'inserthorizontalrule':'\uf141',
+                'pin':'\uf0c6',
+                'createlink':'\uf0c1',
+                'keyword':'\uf084',
+                'property-name':'\uf044'}
   // type detect
   utils.is = function(obj, type) {
     return Object.prototype.toString.call(obj).slice(8, -1) === type;
@@ -132,24 +158,97 @@ jQuery(document).ready(function($) {
     var menu = document.createElement('div');
     menu.setAttribute('class', this.config.className + '-menu pen-menu');
 
+    var clickHandler = function(e) {
+      var action = e.data.action;
+      var eventData = e.data.eventData;
+      if(!action) return;
+      var apply = function(value) {
+        that._sel.removeAllRanges();
+        that._sel.addRange(that._range);
+        that._actions(action, value);
+        that._range = that._sel.getRangeAt(0);
+        that.highlight().menu();
+      };
+
+      // create link
+      if(action === 'createlink') {
+        var input = menu.getElementsByTagName('input')[0], createlink;
+
+        input.style.display = 'block';
+        input.focus();
+
+        createlink = function(input) {
+          input.style.display = 'none';
+          if(input.value) return apply(input.value.replace(/(^\s+)|(\s+$)/g, '').replace(/^(?!http:\/\/|https:\/\/)(.*)$/, 'http://$1'));
+          action = 'unlink';
+          apply();
+        };
+
+        return input.onkeypress = function(e) {
+          if(e.which === 13) return createlink(e.target);
+        };
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      apply(eventData);
+    };
+
+
     for(var i = 0, list = this.config.list; i < list.length; i++) {
       
-      var name = list[i], klass = 'pen-icon icon-' + name;
-/*      var icon = document.createElement('i');
-      icon.setAttribute('class', klass);
-      icon.innerHTML = (name.match(/^h[1-6]|p$/i) ? name.toUpperCase() : '');
-*/
-      icons += '<i class="' + klass + '" data-action="' + name + '">' + (name.match(/^h[1-6]|p$/i) ? name.toUpperCase() : '') + '</i>';
-      if((name === 'createlink')) icons += '<input class="pen-input" placeholder="http://" />';
+      var name = list[i];
+      var HTML = (name.match(/^h[1-6]|p$/i) ? name.toUpperCase() : '');
+      var icon = $('<div></div>').addClass('pen-icon '+name);
+      if(HTML === '')
+        icon.html(iconUnicode[name]);
+      else
+        icon.html(HTML);
+      var data = {action: name,
+                  eventData:'none'
+          };
+
+      icon.on('click', data, clickHandler);
+      menu.appendChild(icon[0]);
+      that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
+
+      if(name === 'createlink'){
+        var input = $('<input></input>').addClass('pen-input').attr('placeholder','http://');
+        menu.appendChild(input[0]);
+      }
     }
 
     if(this.config.events) {
       for(var i = 0, events = this.config.events; i < events.length; i++) {
-        icons += '<i class="' + events[i].className + '" data-action="event-' + events[i].name + '"></i>';
+        if(events[i].type === 'group'){
+          var dropdownMenu =  $('<div class="pen-dropdown"></div>').
+                                html('<span class="dropdown-icon">'+events[i].content+'</span><i style="font-size:10px">&nbsp;\uf0d7</i>');
+          var dropdownItems = $('<div class="pen-dropdown-items"></div>');
+          //TODO add event handler for mouseout so that dropdown satys for some time after mouseout
+          for(var j=0; j < events[i].options.length; j++){
+            var option = events[i].options[j];
+            var icon = $('<div></div>').addClass('pen-dropdown-option').html(option.content);
+            var data = {action: 'event-'+ option.name,
+                        eventData:option.data
+                      };
+            icon.on('click',data, clickHandler);
+            dropdownItems.append(icon);
+            that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
+          }
+          dropdownMenu.append(dropdownItems);
+          menu.appendChild(dropdownMenu[0]);
+        }
+        else{
+          var icon = $('<div></div>').addClass(events[i].className).html(events[i].content);
+          var data = {action: 'event-'+ events[i].name,
+                      eventData:'none'
+                      };
+          icon.on('click', data, clickHandler);
+          menu.appendChild(icon[0]);
+          that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
+        }
       }
     }
 
-    menu.innerHTML = icons;
     menu.style.display = 'none';
 
     document.body.appendChild((this._menu = menu));
@@ -177,6 +276,7 @@ jQuery(document).ready(function($) {
           that.menu().highlight();
         } else {
           //hide menu
+          console.log('toggle called');
           that._menu.style.display = 'none';
         }
       }, 200);
@@ -185,60 +285,26 @@ jQuery(document).ready(function($) {
     that._eventHandlers.push({elem: editor, event: 'mouseup', handler:toggle});
     // toggle toolbar on mouse select
     editor.addEventListener('mouseup', toggle);
-
+    console.log(editor);
     that._eventHandlers.push({elem: editor, event: 'keyup', handler:toggle});
     // toggle toolbar on key select
     editor.addEventListener('keyup', toggle);
 
     var hideMenu = function(e){
-      that._menu.style.display = 'none';
+      console.log('hidemenu called');
+      console.log(e);
+      var klasses = $(e.target).attr('class');
+      var klassExists = -1;
+      if(typeof(klasses) != 'undefined')
+        klassExists = klasses.split(' ').indexOf('pen-icon');
+      if( klassExists === -1){
+        that._menu.style.display = 'none';
+        console.log('menu hidden in hidemenu');
+      }
     }
 
-    that._eventHandlers.push({elem: document, event: 'mouseup', handler:hideMenu});
-    document.addEventListener('mouseup', hideMenu);
-    var clickHandler = function(e) {
-      console.log(e);
-      try {
-        var action = e.target.getAttribute('data-action');
-      }
-      catch(e){
-        action = e.target.parentNode.getAttribute('data-action');
-      }
-      if(!action) return;
-
-      var apply = function(value) {
-        that._sel.removeAllRanges();
-        that._sel.addRange(that._range);
-        that._actions(action, value);
-        that._range = that._sel.getRangeAt(0);
-        that.highlight().nostyle().menu();
-      };
-
-      // create link
-      if(action === 'createlink') {
-        var input = menu.getElementsByTagName('input')[0], createlink;
-
-        input.style.display = 'block';
-        input.focus();
-
-        createlink = function(input) {
-          input.style.display = 'none';
-          if(input.value) return apply(input.value.replace(/(^\s+)|(\s+$)/g, '').replace(/^(?!http:\/\/|https:\/\/)(.*)$/, 'http://$1'));
-          action = 'unlink';
-          apply();
-        };
-
-        return input.onkeypress = function(e) {
-          if(e.which === 13) return createlink(e.target);
-        };
-      }
-
-      apply();
-    };
-
-    that._eventHandlers.push({elem: menu, event: 'click', handler:clickHandler});
-    // toggle toolbar on key select
-    menu.addEventListener('click', clickHandler);
+    that._eventHandlers.push({elem: document, event: 'click', handler:hideMenu});
+    document.addEventListener('click', hideMenu);
 
     return this;
   };
@@ -260,8 +326,8 @@ jQuery(document).ready(function($) {
     if (linkInput) linkInput.style.display = 'none';
 
     highlight = function(str) {
-      var selector = '.icon-' + str
-        , el = menu.querySelector(selector);
+      var selector = '.' + str
+      var el = menu.querySelector(selector);
       return el && el.classList.add('active');
     };
 
@@ -325,15 +391,20 @@ jQuery(document).ready(function($) {
       return overall('formatblock', name);
     };
 
-    callMyEvent = function(name) {
+    callMyEvent = function(name, eventData) {
       var eventName = name.split('-')[1];
-      var event = new CustomEvent(eventName, {'detail': document.getSelection()});
-      that.config.editor.dispatchEvent(event);
+      //var event = new CustomEvent(eventName, {'detail': document.getSelection()});
+      $(that.config.editor).trigger({
+        type: eventName,
+        range: that._sel.getRangeAt(0),
+        detail: eventData
+      });
+      //that.config.editor.dispatchEvent(event);
     };
 
     this._actions = function(name, value) {
       if(name.match(reg.event)) {
-        callMyEvent(name);
+        callMyEvent(name, value);
       }
       else if(name.match(reg.block)) {
         block(name);
