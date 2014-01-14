@@ -164,7 +164,9 @@ jQuery(document).ready(function($) {
       if(!action) return;
       var apply = function(value) {
         that._sel.removeAllRanges();
-        that._sel.addRange(that._range);
+        //that._sel.addRange(that._range);
+        console.log(that._range);
+        rangy.restoreSelection(that._range);
         that._actions(action, value);
         that._range = that._sel.getRangeAt(0);
         that.highlight().menu();
@@ -248,23 +250,27 @@ jQuery(document).ready(function($) {
         }
       }
     }
-
-    menu.style.display = 'none';
-
-    document.body.appendChild((this._menu = menu));
-
-    var setpos = function() {
+    //removing this as we want pen to be always present
+    menu.style.display = 'block';
+    var editor = this.config.editor;
+    this._menu = menu;
+    console.log(editor);
+    $(editor).parent().prepend($(menu));
+    $(editor).on('keyup mouseup', function(){ console.log('keyup');that._range = rangy.saveSelection();})
+    //that.menu();
+    /*var setpos = function() {
       if(menu.style.display === 'block') that.menu();
-    };
+    };*/
 
     // change menu offset when window resize / scroll
-    that._eventHandlers.push({elem: window, event: 'resize', handler:setpos});
+    //removing this because we need editor always
+/*    that._eventHandlers.push({elem: window, event: 'resize', handler:setpos});
     window.addEventListener('resize', setpos);
     that._eventHandlers.push({elem: window, event: 'scroll', handler:setpos});
     window.addEventListener('scroll', setpos);
-
-    var editor = this.config.editor;
-    var toggle = function() {
+*/
+    
+/*    var toggle = function() {
 
       if(that._isDestroyed) return;
 
@@ -281,16 +287,17 @@ jQuery(document).ready(function($) {
         }
       }, 200);
     };
-
-    that._eventHandlers.push({elem: editor, event: 'mouseup', handler:toggle});
+*/   
+    //removing these as we want pen editor to be always present
+    //that._eventHandlers.push({elem: editor, event: 'mouseup', handler:toggle});
     // toggle toolbar on mouse select
-    editor.addEventListener('mouseup', toggle);
-    console.log(editor);
-    that._eventHandlers.push({elem: editor, event: 'keyup', handler:toggle});
+    //editor.addEventListener('mouseup', toggle);
+    //console.log(editor);
+    //that._eventHandlers.push({elem: editor, event: 'keyup', handler:toggle});
     // toggle toolbar on key select
-    editor.addEventListener('keyup', toggle);
+    //editor.addEventListener('keyup', toggle);
 
-    var hideMenu = function(e){
+    /*var hideMenu = function(e){
       console.log('hidemenu called');
       console.log(e);
       var klasses = $(e.target).attr('class');
@@ -301,10 +308,10 @@ jQuery(document).ready(function($) {
         that._menu.style.display = 'none';
         console.log('menu hidden in hidemenu');
       }
-    }
+    }*/
 
-    that._eventHandlers.push({elem: document, event: 'click', handler:hideMenu});
-    document.addEventListener('click', hideMenu);
+    //that._eventHandlers.push({elem: document, event: 'click', handler:hideMenu});
+    //document.addEventListener('click', hideMenu);
 
     return this;
   };
@@ -423,15 +430,16 @@ jQuery(document).ready(function($) {
   // show menu
   Pen.prototype.menu = function() {
 
-    var offset = this._range.getBoundingClientRect()
+    /*var offset = this._range.getBoundingClientRect()
       , top = offset.top - 10
       , left = offset.left + (offset.width / 2)
-      , menu = this._menu;
+      , menu = this._menu;*/
 
     // display block to caculate it's width & height
+    menu  = this._menu;
+    console.log($(this.config.editor).offset().top);
     menu.style.display = 'block';
-    menu.style.top = top - menu.clientHeight + 'px';
-    menu.style.left = left - (menu.clientWidth/2) + 'px';
+    $(menu).offset($(this.config.editor).offset());
 
     return this;
   };
