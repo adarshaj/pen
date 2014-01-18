@@ -74,8 +74,8 @@ jQuery(document).ready(function($) {
       stay: config.stay || !config.debug,
       textarea: '<textarea name="content"></textarea>',
       list: [
-        'blockquote', 'h2', 'h3', 'p', 'insertorderedlist', 'insertunorderedlist', 'inserthorizontalrule',
-        'indent', 'outdent', 'bold', 'italic', 'underline', 'createlink'
+        'blockquote', 'insertorderedlist', 'insertunorderedlist', 'indent',
+         'outdent', 'bold', 'italic', 'underline', 'createlink'
       ]
     };
 
@@ -97,7 +97,6 @@ jQuery(document).ready(function($) {
 
     // merge user config
     var defaults = utils.merge(config);
-
     if(defaults.editor.nodeType !== 1) return utils.log('can\'t find editor');
     if(defaults.debug) window._pen_debug_mode_on = true;
 
@@ -129,6 +128,7 @@ jQuery(document).ready(function($) {
 
     // stay on the page
     this.config.stay && this.stay();
+    this.affix();
   };
 
   // node effects
@@ -164,12 +164,11 @@ jQuery(document).ready(function($) {
       if(!action) return;
       var apply = function(value) {
         that._sel.removeAllRanges();
-        //that._sel.addRange(that._range);
+        that._sel.addRange(that._range);
         console.log(that._range);
-        rangy.restoreSelection(that._range);
         that._actions(action, value);
         that._range = that._sel.getRangeAt(0);
-        that.highlight().menu();
+        that.highlight();
       };
 
       // create link
@@ -223,7 +222,7 @@ jQuery(document).ready(function($) {
       for(var i = 0, events = this.config.events; i < events.length; i++) {
         if(events[i].type === 'group'){
           var dropdownMenu =  $('<div class="pen-dropdown"></div>').
-                                html('<span class="dropdown-icon">'+events[i].content+'</span><i style="font-size:10px">&nbsp;\uf0d7</i>');
+                                html('<span class="dropdown-icon">'+events[i].content+'<i style="font-size:10px">&nbsp;\uf0d7</i></span>');
           var dropdownItems = $('<div class="pen-dropdown-items"></div>');
           //TODO add event handler for mouseout so that dropdown satys for some time after mouseout
           for(var j=0; j < events[i].options.length; j++){
@@ -237,7 +236,7 @@ jQuery(document).ready(function($) {
             that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
           }
           dropdownMenu.append(dropdownItems);
-          menu.appendChild(dropdownMenu[0]);
+          $(menu).prepend(dropdownMenu);
         }
         else{
           var icon = $('<div></div>').addClass(events[i].className).html(events[i].content);
@@ -245,7 +244,8 @@ jQuery(document).ready(function($) {
                       eventData:'none'
                       };
           icon.on('click', data, clickHandler);
-          menu.appendChild(icon[0]);
+          $(menu).prepend(icon);
+          //menu.appendChild(icon[0]);
           that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
         }
       }
@@ -253,10 +253,13 @@ jQuery(document).ready(function($) {
     //removing this as we want pen to be always present
     menu.style.display = 'block';
     var editor = this.config.editor;
-    this._menu = menu;
+    that._menu = menu;
     console.log(editor);
     $(editor).parent().prepend($(menu));
-    $(editor).on('keyup mouseup', function(){ console.log('keyup');that._range = rangy.saveSelection();})
+    $(editor).on('keyup mouseup', function(){ 
+      console.log('keyup');
+      that._range = that._sel.getRangeAt(0);
+    });
     //that.menu();
     /*var setpos = function() {
       if(menu.style.display === 'block') that.menu();
@@ -401,6 +404,7 @@ jQuery(document).ready(function($) {
     callMyEvent = function(name, eventData) {
       var eventName = name.split('-')[1];
       //var event = new CustomEvent(eventName, {'detail': document.getSelection()});
+      console.log(that._sel);
       $(that.config.editor).trigger({
         type: eventName,
         range: that._sel.getRangeAt(0),
@@ -448,6 +452,27 @@ jQuery(document).ready(function($) {
     var that = this;
     !window.onbeforeunload && (window.onbeforeunload = function() {
       if(!that._isDestroyed) return 'Are you going to leave here?';
+    });
+  };
+
+  Pen.prototype.affix = function(){
+    var container = $(this.config.container);
+    var editor = $(this.config.editor);
+    var menu = $(this._menu);
+    container.on('scroll', function(){
+      //console.log('scrolling');
+      if(editor.offset().top - container.offset().top > menu.height()){
+        menu.css('top',0);
+      }
+      else if(editor.offset().top > container.offset().top){
+          menu.css('top', menu.height() - (editor.offset().top - container.offset().top));
+      }
+      else if(container.offset().top - editor.offset().top < editor.height() - menu.height()){
+        menu.css('top', menu.height() - (editor.offset().top - container.offset().top ) );
+      }
+      else {
+        menu.css('top', editor.height() - menu.height());
+      }
     });
   };
 
