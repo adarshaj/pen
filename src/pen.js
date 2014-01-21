@@ -167,7 +167,11 @@ jQuery(document).ready(function($) {
         that._sel.addRange(that._range);
         console.log(that._range);
         that._actions(action, value);
-        that._range = that._sel.getRangeAt(0);
+        if (that._sel.rangeCount > 0) {
+          that._range = that._sel.getRangeAt(0);
+        } else {
+          that._range = null;
+        }
         that.highlight();
       };
 
@@ -258,7 +262,9 @@ jQuery(document).ready(function($) {
     $(editor).parent().prepend($(menu));
     $(editor).on('keyup mouseup', function(){ 
       console.log('keyup');
-      that._range = that._sel.getRangeAt(0);
+      if (that._sel.rangeCount > 0) {
+        that._range = that._sel.getRangeAt(0);
+      }
     });
     //that.menu();
     /*var setpos = function() {
@@ -381,22 +387,28 @@ jQuery(document).ready(function($) {
     };
 
     insert = function(name) {
-      var range = that._sel.getRangeAt(0)
-        , node = range.startContainer;
+      if (that._sel.rangeCount > 0) {
+        var range = that._sel.getRangeAt(0)
+          , node = range.startContainer;
 
-      while(node.nodeType !== 1) {
-        node = node.parentNode;
+        while(node.nodeType !== 1) {
+          node = node.parentNode;
+        }
+
+        range.selectNode(node);
+        range.collapse(false);
       }
-
-      range.selectNode(node);
-      range.collapse(false);
       return overall(name);
     };
 
     block = function(name) {
-      if(that._effectNode(that._sel.getRangeAt(0).startContainer, true).indexOf(name) !== -1) {
-        if(name === 'blockquote') return document.execCommand('outdent', false, null);
-        name = 'p';
+      var currentRange = null;
+      if (that._sel.rangeCount > 0){
+        currentRange = that._sel.getRangeAt(0);
+        if(that._effectNode(currentRange.startContainer, true).indexOf(name) !== -1) {
+          if(name === 'blockquote') return document.execCommand('outdent', false, null);
+          name = 'p';
+        }
       }
       return overall('formatblock', name);
     };
