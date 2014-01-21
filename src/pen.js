@@ -405,9 +405,13 @@ jQuery(document).ready(function($) {
       var eventName = name.split('-')[1];
       //var event = new CustomEvent(eventName, {'detail': document.getSelection()});
       console.log(that._sel);
+      var currentRange = null;
+      if (that._sel.rangeCount > 0) {
+        currentRange = that._sel.getRangeAt(0);
+      }
       $(that.config.editor).trigger({
         type: eventName,
-        range: that._sel.getRangeAt(0),
+        range: currentRange,
         detail: eventData
       });
       //that.config.editor.dispatchEvent(event);
