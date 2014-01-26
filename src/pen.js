@@ -163,7 +163,9 @@ jQuery(document).ready(function($) {
       if(!action) return;
       var apply = function(value) {
         that.config.editor.focus();
-        rangy.getSelection().moveToBookmark(that.bookmark);
+        if(typeof(that.bookmark) != 'undefined'){
+          rangy.getSelection().moveToBookmark(that.bookmark);
+        }
         that._actions(action, value);
         that.highlight();
       };
@@ -218,7 +220,7 @@ jQuery(document).ready(function($) {
     if(this.config.events) {
       for(var i = 0, events = this.config.events; i < events.length; i++) {
         if(events[i].type === 'group'){
-          var dropdownMenu =  $('<div class="pen-dropdown"></div>').
+          var dropdownMenu =  $('<div class="pen-dropdown pen-icon"></div>').
                                 html('<span class="dropdown-icon">'+events[i].content+'<i style="font-size:10px">&nbsp;\uf0d7</i></span>');
           var dropdownItems = $('<div class="pen-dropdown-items"></div>');
           //TODO add event handler for mouseout so that dropdown satys for some time after mouseout
@@ -242,7 +244,6 @@ jQuery(document).ready(function($) {
                       };
           icon.on('click', data, clickHandler);
           $(menu).prepend(icon);
-          //menu.appendChild(icon[0]);
           that._eventHandlers.push({elem: icon, event: 'click', handler:clickHandler});
         }
       }
@@ -254,6 +255,7 @@ jQuery(document).ready(function($) {
 
     var bookmarkHandler = function(e){
       that.bookmark = rangy.getSelection().getBookmark(editor);
+      that.highlight();
     };
     $(editor).bind('keyup', bookmarkHandler);
     $(editor).bind('mousedown', bookmarkHandler);
@@ -290,6 +292,7 @@ jQuery(document).ready(function($) {
 //we search for the tag in each of the ancestor node of the current selected node and appropriately highlight
     effects.forEach(function(item) {
       var tag = item.nodeName.toLowerCase();
+      console.log(item);
       switch(tag) {
         case 'a': return (menu.querySelector('input').value = item.href), highlight('createlink');
         case 'i': return highlight('italic');
