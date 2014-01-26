@@ -114,9 +114,7 @@ jQuery(document).ready(function($) {
 
     // save the selection obj
     this._sel = document.getSelection();
-
     this._eventHandlers = [];
-
     // map actions
     this.actions();
 
@@ -134,7 +132,7 @@ jQuery(document).ready(function($) {
   // node effects
   Pen.prototype._effectNode = function(el, returnAsNodeName) {
     var nodes = [];
-    while(el !== this.config.editor) {
+    while(el !== this.config.editor && el!=null) {
       if(el.nodeName.match(/(?:[pubia]|h[1-6]|blockquote|[uo]l|li)/i)) {
         nodes.push(returnAsNodeName ? el.nodeName.toLowerCase() : el);
       }
@@ -152,6 +150,7 @@ jQuery(document).ready(function($) {
     return this;
   };
 
+
   Pen.prototype.toolbar = function() {
 
     var that = this, icons = '';
@@ -163,9 +162,10 @@ jQuery(document).ready(function($) {
       var eventData = e.data.eventData;
       if(!action) return;
       var apply = function(value) {
-        that._sel.removeAllRanges();
-        that._sel.addRange(that._range);
-        console.log(that._range);
+        that.config.editor.focus();
+        if(typeof(that.bookmark) != 'undefined'){
+          rangy.getSelection().moveToBookmark(that.bookmark);
+        }
         that._actions(action, value);
         if (that._sel.rangeCount > 0) {
           that._range = that._sel.getRangeAt(0);
@@ -193,8 +193,8 @@ jQuery(document).ready(function($) {
           if(e.which === 13) return createlink(e.target);
         };
       }
-      e.preventDefault();
-      e.stopPropagation();
+      //e.preventDefault();
+      //e.stopPropagation();
       apply(eventData);
     };
 
@@ -214,7 +214,7 @@ jQuery(document).ready(function($) {
 
       icon.on('click', data, clickHandler);
       menu.appendChild(icon[0]);
-      that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
+      that._eventHandlers.push({elem: icon, event: 'click', handler:clickHandler});
 
       if(name === 'createlink'){
         var input = $('<input></input>').addClass('pen-input').attr('placeholder','http://');
@@ -225,7 +225,7 @@ jQuery(document).ready(function($) {
     if(this.config.events) {
       for(var i = 0, events = this.config.events; i < events.length; i++) {
         if(events[i].type === 'group'){
-          var dropdownMenu =  $('<div class="pen-dropdown"></div>').
+          var dropdownMenu =  $('<div class="pen-dropdown pen-icon"></div>').
                                 html('<span class="dropdown-icon">'+events[i].content+'<i style="font-size:10px">&nbsp;\uf0d7</i></span>');
           var dropdownItems = $('<div class="pen-dropdown-items"></div>');
           //TODO add event handler for mouseout so that dropdown satys for some time after mouseout
@@ -237,7 +237,7 @@ jQuery(document).ready(function($) {
                       };
             icon.on('click',data, clickHandler);
             dropdownItems.append(icon);
-            that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
+            that._eventHandlers.push({elem: icon, event: 'click', handler:clickHandler});
           }
           dropdownMenu.append(dropdownItems);
           $(menu).prepend(dropdownMenu);
@@ -249,86 +249,34 @@ jQuery(document).ready(function($) {
                       };
           icon.on('click', data, clickHandler);
           $(menu).prepend(icon);
-          //menu.appendChild(icon[0]);
-          that._eventHandlers.push({elem: icon[0], event: 'click', handler:clickHandler});
+          that._eventHandlers.push({elem: icon, event: 'click', handler:clickHandler});
         }
       }
     }
-    //removing this as we want pen to be always present
     menu.style.display = 'block';
     var editor = this.config.editor;
     that._menu = menu;
-    console.log(editor);
     $(editor).parent().prepend($(menu));
-    $(editor).on('keyup mouseup', function(){ 
-      console.log('keyup');
-      if (that._sel.rangeCount > 0) {
-        that._range = that._sel.getRangeAt(0);
-      }
-    });
-    //that.menu();
-    /*var setpos = function() {
-      if(menu.style.display === 'block') that.menu();
-    };*/
 
-    // change menu offset when window resize / scroll
-    //removing this because we need editor always
-/*    that._eventHandlers.push({elem: window, event: 'resize', handler:setpos});
-    window.addEventListener('resize', setpos);
-    that._eventHandlers.push({elem: window, event: 'scroll', handler:setpos});
-    window.addEventListener('scroll', setpos);
-*/
-    
-/*    var toggle = function() {
-
-      if(that._isDestroyed) return;
-
-      utils.shift('toggle_menu', function() {
-        var range = that._sel;
-        if(!range.isCollapsed) {
-          //show menu
-          that._range = range.getRangeAt(0);
-          that.menu().highlight();
-        } else {
-          //hide menu
-          console.log('toggle called');
-          that._menu.style.display = 'none';
-        }
-      }, 200);
+    var bookmarkHandler = function(e){
+      that.bookmark = rangy.getSelection().getBookmark(editor);
+      that.highlight();
     };
-*/   
-    //removing these as we want pen editor to be always present
-    //that._eventHandlers.push({elem: editor, event: 'mouseup', handler:toggle});
-    // toggle toolbar on mouse select
-    //editor.addEventListener('mouseup', toggle);
-    //console.log(editor);
-    //that._eventHandlers.push({elem: editor, event: 'keyup', handler:toggle});
-    // toggle toolbar on key select
-    //editor.addEventListener('keyup', toggle);
-
-    /*var hideMenu = function(e){
-      console.log('hidemenu called');
-      console.log(e);
-      var klasses = $(e.target).attr('class');
-      var klassExists = -1;
-      if(typeof(klasses) != 'undefined')
-        klassExists = klasses.split(' ').indexOf('pen-icon');
-      if( klassExists === -1){
-        that._menu.style.display = 'none';
-        console.log('menu hidden in hidemenu');
-      }
-    }*/
-
-    //that._eventHandlers.push({elem: document, event: 'click', handler:hideMenu});
-    //document.addEventListener('click', hideMenu);
-
+    $(editor).bind('keyup', bookmarkHandler);
+    $(editor).bind('mousedown', bookmarkHandler);
+    $(editor).bind('mouseup', bookmarkHandler);
+    that._eventHandlers.push({elem: $(editor), event: 'mouseup', handler:bookmarkHandler});
+    that._eventHandlers.push({elem: $(editor), event: 'mousedown', handler:bookmarkHandler});
+    that._eventHandlers.push({elem: $(editor), event: 'keyup', handler:bookmarkHandler});
     return this;
   };
 
   // highlight menu
   Pen.prototype.highlight = function() {
+
     var node = this._sel.focusNode
-      , effects = this._effectNode(node)
+    //effectNode return an array of all the ancestor nodes till the root, which is the editor, of the selected node 
+      , effects = this._effectNode(node)      
       , menu = this._menu
       , linkInput = menu.querySelector('input')
       , highlight;
@@ -346,9 +294,10 @@ jQuery(document).ready(function($) {
       var el = menu.querySelector(selector);
       return el && el.classList.add('active');
     };
-
+//we search for the tag in each of the ancestor node of the current selected node and appropriately highlight
     effects.forEach(function(item) {
       var tag = item.nodeName.toLowerCase();
+      console.log(item);
       switch(tag) {
         case 'a': return (menu.querySelector('input').value = item.href), highlight('createlink');
         case 'i': return highlight('italic');
@@ -379,7 +328,7 @@ jQuery(document).ready(function($) {
 
     overall = function(cmd, val) {
       var message = ' to exec 「' + cmd + '」 command' + (val ? (' with value: ' + val) : '');
-      if(document.execCommand(cmd, false, val) && that.config.debug) {
+      if(document.execCommand(cmd, false) && that.config.debug) {
         utils.log('success' + message);
       } else {
         utils.log('fail' + message);
@@ -415,15 +364,9 @@ jQuery(document).ready(function($) {
 
     callMyEvent = function(name, eventData) {
       var eventName = name.split('-')[1];
-      //var event = new CustomEvent(eventName, {'detail': document.getSelection()});
-      console.log(that._sel);
-      var currentRange = null;
-      if (that._sel.rangeCount > 0) {
-        currentRange = that._sel.getRangeAt(0);
-      }
       $(that.config.editor).trigger({
         type: eventName,
-        range: currentRange,
+        range: (that._sel.isCollapsed? null : that._sel.getRangeAt(0)),
         detail: eventData
       });
       //that.config.editor.dispatchEvent(event);
@@ -447,23 +390,6 @@ jQuery(document).ready(function($) {
     return this;
   };
 
-  // show menu
-  Pen.prototype.menu = function() {
-
-    /*var offset = this._range.getBoundingClientRect()
-      , top = offset.top - 10
-      , left = offset.left + (offset.width / 2)
-      , menu = this._menu;*/
-
-    // display block to caculate it's width & height
-    menu  = this._menu;
-    console.log($(this.config.editor).offset().top);
-    menu.style.display = 'block';
-    $(menu).offset($(this.config.editor).offset());
-
-    return this;
-  };
-
   Pen.prototype.stay = function() {
     var that = this;
     !window.onbeforeunload && (window.onbeforeunload = function() {
@@ -476,7 +402,6 @@ jQuery(document).ready(function($) {
     var editor = $(this.config.editor);
     var menu = $(this._menu);
     container.on('scroll', function(){
-      //console.log('scrolling');
       if(editor.offset().top - container.offset().top > menu.height()){
         menu.css('top',0);
       }
@@ -504,7 +429,7 @@ jQuery(document).ready(function($) {
     for (var z = 0; z < this._eventHandlers.length; z++) {
       console.log('destroying handlers on elem:');
       console.log(this._eventHandlers[z].elem);
-      this._eventHandlers[z].elem.removeEventListener(this._eventHandlers[z].event, this._eventHandlers[z].handler);
+      this._eventHandlers[z].elem.unbind(this._eventHandlers[z].event, this._eventHandlers[z].handler);
     }
     this._eventHandlers.length = 0;
 
@@ -527,5 +452,6 @@ jQuery(document).ready(function($) {
   // make it accessible
   window.Pen = document.getSelection ? Pen : FakePen;
 
+    
 });
 
